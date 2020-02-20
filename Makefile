@@ -1,7 +1,7 @@
 .PHONY: build run
 
 # Default values for variables
-REPO  ?= dorowu/ubuntu-desktop-lxde-vnc
+REPO  ?= joebarbere/ubuntu-desktop-lxde-vnc
 TAG   ?= latest
 # you can choose other base image versions
 IMAGE ?= ubuntu:18.04
@@ -21,6 +21,7 @@ build: $(templates)
 #  the local dir will be mounted under /src read-only
 run:
 	docker run --rm \
+		--gpus all \
 		-p 6080:80 -p 6081:443 \
 		-v ${PWD}:/src:ro \
 		-e USER=doro -e PASSWORD=mypassword \

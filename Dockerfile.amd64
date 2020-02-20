@@ -1,10 +1,10 @@
-# Built with arch: amd64 flavor: lxde image: ubuntu:18.04
+# Built with arch: amd64 flavor: lxde image: tensorflow/tensorflow:latest-gpu
 #
 ################################################################################
 # base system
 ################################################################################
 
-FROM ubuntu:18.04 as system
+FROM tensorflow/tensorflow:latest-gpu as system
 
 
 
@@ -71,11 +71,32 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /var/cache/apt/* /tmp/a.txt /tmp/b.txt
 
+# install cuda/cudnn
+COPY cuda_9.0.176_384.81_linux.run /tmp
+COPY cudnn-9.0-linux-x64-v7.6.5.32.tgz /tmp
+
+WORKDIR /tmp
+
+RUN chmod +x cuda_9.0.176_384.81_linux.run
+RUN ./cuda_9.0.176_384.81_linux.run --silent --toolkit --override
+
+RUN touch ~/.bashrc
+RUN echo 'export PATH=/usr/local/cuda-9.0/bin:$PATH' >> ~/.bashrc \
+  && echo 'export LD_LIBRARY_PATH=/usr/local/cuda-9.0/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc \
+  && echo 'export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc \
+  && . ~/.bashrc
+
+RUN tar -xzvf cudnn-9.0-linux-x64-v7.6.5.32.tgz
+
+RUN cp -P cuda/include/cudnn.h /usr/local/cuda-9.0/include
+RUN cp -P cuda/lib64/libcudnn* /usr/local/cuda-9.0/lib64/
+RUN chmod a+r /usr/local/cuda-9.0/lib64/libcudnn*
+
 
 ################################################################################
 # builder
 ################################################################################
-FROM ubuntu:18.04 as builder
+FROM tensorflow/tensorflow:latest-gpu as builder
 
 
 RUN sed -i 's#http://archive.ubuntu.com/ubuntu/#mirror://mirrors.ubuntu.com/mirrors.txt#' /etc/apt/sources.list; 
@@ -106,7 +127,7 @@ RUN cd /src/web \
 # merge
 ################################################################################
 FROM system
-LABEL maintainer="fcwu.tw@gmail.com"
+LABEL maintainer="Joe Barbere"
 
 COPY --from=builder /src/web/dist/ /usr/local/lib/web/frontend/
 COPY rootfs /
